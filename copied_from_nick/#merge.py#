@@ -1,4 +1,4 @@
-import h5py
+ls import h5py
 import numpy as np
 import glob
 import os
@@ -6,34 +6,12 @@ import random
 import argparse
 random.seed(1337)
 
-# directory that merge.py is in
-script_dir = os.getcwd() + '/'
-#print(script_dir)
-
-spacer = "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Argument parsing
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Argument parsing.  TODO: add a field to make the user able to input TTbar and QCD directory file paths
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--number', type=int, default=0, help='which file to run')
-parser.add_argument('-t', '--ttbar_dir', type = str, default = 'test_input/ttbar', help = 'which directory to take ttbar input from')
-parser.add_argument('-q', '--qcd_dir', type = str, default = 'test_input/qcd', help = 'which directory to take qcd input from')
-# Getting the output path.  Could also use '>' or possibly '>>' in the shell, but I added this for consistency
-parser.add_argument('-o', '--output_dir', type = str, default = 'test_output', help = "which directory to put output in.  Defaults to the directory that merge.py is in")
 args = parser.parse_args()
 
-# Getting information that the user passed in
 nFile = args.number
-# Getting the full path to the directories that contain ttbar and qcd files
-TTbar_dir = script_dir + args.ttbar_dir
-QCD_dir = script_dir + args.qcd_dir
-# Setting the output directory based on what the user input
-outDir = script_dir + args.output_dir
-#outDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/test_output/merged_files_x1_d1'
 
-# TODO: figure this out
 test = False
 
 batch_sz = 32
@@ -41,29 +19,23 @@ chunk_sz = batch_sz*500
 #if os.path.isfile(output_name):
 #    os.remove(output_name)
 
-# First few characters of the output file name
 output_name = 'jmar_x1'
 gran = 1
 ch = 5
 
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Getting all the files that we want to use, then
-# iterating through the lists of files to count the number of events
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Gets a list of all files contained in TTbar_dir
+#TTbar_dir  = 'TTbar_IMGjet'
+#TTbar_dir  = 'ttbar_decorrelated'
+#TTbar_dir  = 'TTbar-RecHits-noCal_IMGjet_fixedTracks_withPix'
+TTbar_dir   = '/home/npervan/e2e/hdf5/_test_top' #TTbar_IMGjet_1-Granularity'
+QCD_dir     = '/home/npervan/e2e/hdf5/_test_qcd' #QCD_IMGjet_1-Granularity'
+#QCD_dir    = 'qcd_decorrelated'
+#QCD_dir    = 'qcd_weighted_rechit'
+#QCD_dir    = 'QCD_wCal_weighted_x1'
+outDir      = '/home/npervan/e2e/hdf5/merged_files_x1_d1_af_test'
 TTbar_files = glob.glob('%s/*'%TTbar_dir)
-# Gets a list of all files contained in QCD_dir
 QCD_files   = glob.glob('%s/*'%QCD_dir)
-
-# Randomizing the order of the input
 random.shuffle(TTbar_files)
 random.shuffle(QCD_files)
-
-print(spacer + "\n TTbar files:\n\n")
-print(TTbar_files)
-print(spacer + "\n QCD files:\n\n")
-print(QCD_files)
 
 TTbar_jets = 0
 QCD_jets = 0
@@ -71,23 +43,13 @@ nevts = 0
 TTbar_split = [0]
 QCD_split = [0]
 for i, jet in enumerate(TTbar_files):
-    # The structure of root files is <blablablabla> + '_n' + <number of events (I think)>.root
-    # The next line takes the integer after the last '_'
-    num_file = int(jet.split('_')[-1][1:-5])
-    # Add this value to TTbar_jets and nevts
-    TTbar_jets += num_file
-    nevts += num_file
-
-    # If the total number of events exceeds the chunk size, start a new counter and record where
-    # the split took place
+    TTbar_jets += int(jet.split('_')[-1][1:-5])
+    nevts += int(jet.split('_')[-1][1:-5])
     if nevts >= chunk_sz:
         TTbar_split.append(i+1)
         nevts = 0
-# Record the index of the last file and reset the event counter
 TTbar_split.append(len(TTbar_files)-1)
 nevts = 0
-
-# Do the same thing for QCD files
 for i, jet in enumerate(QCD_files):
     QCD_jets += int(jet.split('_')[-1][1:-5])
     nevts += int(jet.split('_')[-1][1:-5])
@@ -96,15 +58,13 @@ for i, jet in enumerate(QCD_files):
         nevts = 0
 QCD_split.append(len(QCD_files)-1)
 
-print(spacer)
 print('Number of TTbar Jets:', TTbar_jets)
 print('Number of QCD Jets:', QCD_jets)
 print('TTbar splits are:', TTbar_split)
 print('QCD_splits are:', QCD_split)
-print('\n')
 
-# TODO: how do you divide a list by an integer???? (doesn't work on my computer)
-file_sz = int(2 * min(TTbar_jets, QCD_jets) / chunk_sz) * chunk_sz
+
+file_sz = int(2*min(TTbar_jets,QCD_jets) / chunk_sz) * chunk_sz
 #if test == True:
 #    file_sz = 2*chunk_sz
 
@@ -114,26 +74,26 @@ def WriteToFile(f, i, TTbar_start, TTbar_stop, QCD_start, QCD_stop, TTbar_files,
     QCD_start = QCD_split[i]
     QCD_stop = QCD_split[i+1]
 
-    print("File size is: " + str(file_sz) + "\n")
+    print(file_sz)
     #quit()
 
     #nevts = 0
     #for file in TTbar_files[TTbar_start:TTbar_stop]:
     #    jets = int(file.split('_')[-1][1:-5])
     #    nevts += jets
-    #    print('number of jets in file', jets)
+    #    print 'number of jets in file', jets
     #print 'Number of top jets', nevts
     #nevts = 0
     #for file in QCD_files[QCD_start:QCD_stop]:
     #    jets = int(file.split('_')[-1][1:-5])
     #    nevts += jets
-    #    print('number of jets in file', jets)
-    #print('Number of qcd jets', nevts)
+    #    print 'number of jets in file', jets
+    #print 'Number of qcd jets', nevts
 
     files = TTbar_files[TTbar_start:TTbar_stop] + QCD_files[QCD_start:QCD_stop]
-    print(spacer + "\nFiles are:\n\n" + str(files) + "\n")
+    print(files)
     random.shuffle(files)
-    print(spacer + "\nShuffled files are:\n\n" + str(files) + "\n")
+    print(files)
 
 
     dsets = [h5py.File(file, 'r') for file in files]
@@ -156,10 +116,10 @@ def WriteToFile(f, i, TTbar_start, TTbar_stop, QCD_start, QCD_stop, TTbar_files,
                 file_num = ii
                 ijet = idx - (tot_jets - len(dset['y']))
                 break
-        #print('Jet number', idx, 'of 32000')
-        #print('In file number', file_num, 'this is jet number', ijet)
+        #print 'Jet number', idx, 'of 32000'
+        #print 'In file number', file_num, 'this is jet number', ijet
         X = np.array(dsets[file_num][input_keys[0]][ijet])
-
+                
         # For ZS make sure that a track is only suppressed based on pT
         # and that if a track is ZSed, it is removed from all track channels
         X[...,0][X[...,0] < 1.e-3] = 0 # pt zero-suppresion
@@ -196,14 +156,14 @@ def WriteToFile(f, i, TTbar_start, TTbar_stop, QCD_start, QCD_stop, TTbar_files,
 
     for dset in dsets:
         dset.close()
-    # End of WriteToFile() function definition
 
 
-max_per_file = 32000 * 1
+
+max_per_file = 32000*1
 total_jets = 0
 
 f = h5py.File('%s/%s_file-%d.hdf5'%(outDir,output_name,nFile), 'w')
-
+    
 
 input_keys = ['X_jets', 'jetPt', 'jetM', 'y']
 output_keys = ['X_jets', 'pt', 'm0', 'y']
@@ -211,7 +171,7 @@ output_keys = ['X_jets', 'pt', 'm0', 'y']
 file_sz = min(file_sz, max_per_file)
 
 files = TTbar_files[TTbar_split[nFile]:TTbar_split[nFile+1]] + QCD_files[QCD_split[nFile]:QCD_split[nFile+1]]
-print(spacer + "\nfiles: \n\n" + str(files))
+print(files)
 file_sz = 0
 for file in files:
     file_sz += int(file.split('_')[-1][1:-5])

@@ -123,11 +123,8 @@ def crop_jet(imgECAL, iphi, ieta, gran, jet_shape=125):
             img_crop = imgECAL[ieta-off:ieta+off+1,iphi-off:iphi+off+1]
 
     return img_crop
-
-#outDir='/home/npervan/e2e/hdf5_top'
+outDir='/home/npervan/e2e/hdf5_top'
 #outDir='/home/npervan/e2e/hdf5_qcd'
-outDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/jan26output'
-#outDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/test_output/qcd_output'
 xrootd='root://cmsxrootd.fnal.gov' # FNAL
 
 decays = ['QCD', 'TTbar']
@@ -138,9 +135,7 @@ doJet = args.doJet
 width = 280*args.granularity
 height = 360*args.granularity
 
-#inputDir = '/home/npervan/e2e/CMSSW_9_3_0/src/MLAnalyzer/jan21input' #top
-#inputDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/test_input'
-inputDir = '/home/npervan/e2e/TTbar_AF'
+inputDir = '/home/npervan/e2e/CMSSW_9_3_0/src/MLAnalyzer/test_input' #top
 
 if doJet == 1:
     #ttbar_files = glob.glob('%s/jmar_aod_ntuples/*' % inputDir)
