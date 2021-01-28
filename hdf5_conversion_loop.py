@@ -6,6 +6,7 @@ from skimage.measure import block_reduce
 from numpy.lib.stride_tricks import as_strided
 import itertools
 
+
 # TODO make it so we can read a file where each event has either 1 OR 2 jets, and process all jets
 
 import argparse
@@ -14,7 +15,13 @@ parser.add_argument('-l', '--label', required=True, type=int, help='Decay label.
 parser.add_argument('-n', '--fileNum', type=int, required=True, help='Choose which file you are processing')
 parser.add_argument('-j', '--doJet', type=int, required=True, help='How many are in your root file. If 0, will do all jets. If 1 or 2, will only convert 1st or 2nd jet')
 parser.add_argument('-g', '--granularity', default=1, type=int, help='Increased Image Pixel Granularity')
+parser.add_argument('-i', '--input', type = str, default = '/home/npervan/e2e/TTbar_AF', help = 'Choose which directory to take input from')
+parser.add_argument('-o', '--output', type = str, default = 'conversion_loop_output', help = 'Choose which directory to take output from')
 args = parser.parse_args()
+
+# Specifying the input and output directories using the argparse arguments
+inputDir = args.input
+outDir = args.output
 
 def upsample_array(x, b0, b1):
 
@@ -22,7 +29,7 @@ def upsample_array(x, b0, b1):
     rs, cs = x.strides                                # row/column strides
     x = as_strided(x, (r, b0, c, b1), (rs, 0, cs, 0)) # view as a larger 4D array
 
-    return x.reshape(r*b0, c*b1)/(b0*b1)              # create new 2D array with same total occupancy 
+    return x.reshape(r*b0, c*b1)/(b0*b1)              # create new 2D array with same total occupancy
 
 def resample_EE(imgECAL, factor=2):
 
@@ -53,21 +60,21 @@ def crop_jet(imgECAL, iphi, ieta, gran, jet_shape=125):
     if iphi < off:
         phi_diff = off-iphi
         #print('phi low')
-        #if eta above or below                                                                                                                    
+        #if eta above or below
         if ieta < off:
             #print('eta low: ', ieta)
             eta_diff = off-ieta
             img_crop = np.concatenate((imgECAL[0:ieta+off+1,-phi_diff:],
-                                   imgECAL[0:ieta+off+1,:iphi+off+1]), axis=-1) #Set lower eta edge to 0 then pad                               
+                                   imgECAL[0:ieta+off+1,:iphi+off+1]), axis=-1) #Set lower eta edge to 0 then pad
             img_crop = np.pad(img_crop,((eta_diff,0),(0,0)), 'constant')
 
         elif 280-ieta < off:
             #print('eta high: ', ieta)
             eta_diff = off - (280-ieta)
             img_crop = np.concatenate((imgECAL[ieta-off:280,-phi_diff:],
-                                   imgECAL[ieta-off:280,:iphi+off+1]), axis=-1) #Set upper eta edge to 280 then pad     
+                                   imgECAL[ieta-off:280,:iphi+off+1]), axis=-1) #Set upper eta edge to 280 then pad
             img_crop = np.pad(img_crop,((0,eta_diff+1),(0,0)), 'constant')
-        
+
         else:
             #print('eta okay')
             img_crop = np.concatenate((imgECAL[ieta-off:ieta+off+1,-phi_diff:],
@@ -77,19 +84,19 @@ def crop_jet(imgECAL, iphi, ieta, gran, jet_shape=125):
     elif 360*gran-iphi < off:
         #print('phi high')
         phi_diff = off - (360-iphi)
-        #if eta above or below                                                                                                                   
+        #if eta above or below
         if ieta < off:
             #print('eta low: ', ieta)
             eta_diff = off-ieta
             img_crop = np.concatenate((imgECAL[0:ieta+off+1,iphi-off:],
-                                       imgECAL[0:ieta+off+1,:phi_diff+1]), axis=-1) #Set lower eta edge to 0 then pad                          
+                                       imgECAL[0:ieta+off+1,:phi_diff+1]), axis=-1) #Set lower eta edge to 0 then pad
             img_crop = np.pad(img_crop,((eta_diff,0),(0,0)), 'constant')
 
         elif 280-ieta < off:
             #print('eta high: ', ieta)
             eta_diff = off - (280-ieta)
             img_crop = np.concatenate((imgECAL[ieta-off:280,iphi-off:],
-                                       imgECAL[ieta-off:280,:phi_diff+1]), axis=-1) #Set upper eta edge to 280 then pad             
+                                       imgECAL[ieta-off:280,:phi_diff+1]), axis=-1) #Set upper eta edge to 280 then pad
             img_crop = np.pad(img_crop,((0,eta_diff+1),(0,0)), 'constant')
 
         else:
@@ -105,7 +112,7 @@ def crop_jet(imgECAL, iphi, ieta, gran, jet_shape=125):
     # Nominal case
     else:
         #print('phi okay')
-        #if eta above or below                                                                                                         
+        #if eta above or below
         if ieta < off:
             #print('eta low: ', ieta)
             eta_diff = off-ieta
@@ -124,10 +131,6 @@ def crop_jet(imgECAL, iphi, ieta, gran, jet_shape=125):
 
     return img_crop
 
-#outDir='/home/npervan/e2e/hdf5_top'
-#outDir='/home/npervan/e2e/hdf5_qcd'
-outDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/jan26output'
-#outDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/test_output/qcd_output'
 xrootd='root://cmsxrootd.fnal.gov' # FNAL
 
 decays = ['QCD', 'TTbar']
@@ -138,15 +141,12 @@ doJet = args.doJet
 width = 280*args.granularity
 height = 360*args.granularity
 
-#inputDir = '/home/npervan/e2e/CMSSW_9_3_0/src/MLAnalyzer/jan21input' #top
-#inputDir = '/home/afriberg/work/CMSSW_10_6_4/src/MLAnalyzer/test_input'
-inputDir = '/home/npervan/e2e/TTbar_AF'
 
 if doJet == 1:
     #ttbar_files = glob.glob('%s/jmar_aod_ntuples/*' % inputDir)
     #qcd_files = glob.glob('%s/qcd_aod_ntuples/*' % inputDir)
     ttbar_files = glob.glob('%s/*' % inputDir)
-    #ttbar_files = glob.glob('%s/jmar_aod_ntuples/*' % inputDir) 
+    #ttbar_files = glob.glob('%s/jmar_aod_ntuples/*' % inputDir)
     qcd_files = glob.glob('%s/qcd_aod_ntuples/*' % inputDir)
 elif doJet == 2:
     ttbar_files = glob.glob('%s/ttbar_2jets/*' % inputDir)
@@ -166,7 +166,7 @@ for d, decay in enumerate(decays):
 
     if d != args.label:
         continue
-   
+
     if d == 0:
         filelist = qcd_files
         tfile_idxs = range(1, len(qcd_files)+1)
@@ -176,7 +176,7 @@ for d, decay in enumerate(decays):
     else:
         print 'decay must be equal to 0 or 1'
         break
-    	
+
     print '>> Doing decay[%d]: %s'%(d, decay)
 
     # Get root tree
@@ -187,7 +187,7 @@ for d, decay in enumerate(decays):
     tree = tfile.Get('fevt/RHTree')
     nevts = tree.GetEntries()
     tree.SetBranchStatus("*",0)
-    
+
     if TEST:
         nevts = 100
 
@@ -235,16 +235,16 @@ for d, decay in enumerate(decays):
         br_pix1 = 'BPIX_layer1_ECALadj_%dx%d'%(args.granularity,args.granularity)
         br_pix2 = 'BPIX_layer2_ECALadj_%dx%d'%(args.granularity,args.granularity)
         br_pix3 = 'BPIX_layer3_ECALadj_%dx%d'%(args.granularity,args.granularity)
-    
+
     # convert to hdf5 file using an event loop
     jet_count = 0
     for iEvt in range(0, nevts):
-        
+
         if not iEvt % 100:
             print 'Processing event', iEvt
         #if TEST:
         #    print iEvt
-            
+
         # initialize tree
         tree.GetEntry(iEvt)
 
@@ -261,7 +261,7 @@ for d, decay in enumerate(decays):
         Hcal = np.array(getattr(tree, br_hcal)).reshape(56,72)
         Hcal = upsample_array(Hcal, 5*args.granularity, 5*args.granularity)
         #print(np.shape(TracksPt))
-        #pix1 = np.array(getattr(tree, br_pix1)).reshape(width, height) #Removed bc no rec hits 
+        #pix1 = np.array(getattr(tree, br_pix1)).reshape(width, height) #Removed bc no rec hits
         #pix2 = np.array(getattr(tree, br_pix2)).reshape(width, height) #Removed bc no rec hits
         #pix3 = np.array(getattr(tree, br_pix3)).reshape(width, height) #Removed bc no rec hits
 
@@ -289,7 +289,7 @@ for d, decay in enumerate(decays):
         m0s = tree.jetM
         iphis = tree.jetSeed_iphi
         ietas = tree.jetSeed_ieta
-        
+
         nJets = len(pts)
         #print(nJets, np.shape(pts))
         #print(type(pts))
@@ -305,7 +305,7 @@ for d, decay in enumerate(decays):
             m0 = m0s[ijet]
             iphi = iphis[ijet]
             ieta = ietas[ijet]
-            
+
             # crop images individually so it is less cpu intensive
             TracksPt_cj = crop_jet( TracksPt, iphi, ieta, args.granularity, jet_shape )
             TracksD0_cj = crop_jet( TracksD0, iphi, ieta, args.granularity, jet_shape )
@@ -315,7 +315,7 @@ for d, decay in enumerate(decays):
             #pix1 = crop_jet( pix1, iphi, ieta, args.granularity, jet_shape ) #Removed bc no rec hits
             #pix2 = crop_jet( pix2, iphi, ieta, args.granularity, jet_shape ) #Removed bc no rec hits
             #pix3 = crop_jet( pix3, iphi, ieta, args.granularity, jet_shape ) #Removed bc no rec hits
-            
+
             X_jet = np.stack((TracksPt_cj, TracksD0_cj, TracksDz_cj, Ecal_cj, Hcal_cj), axis=-1) #Removed pix1, pix2, pix3
 
             TracksPt_cj = None
@@ -330,7 +330,7 @@ for d, decay in enumerate(decays):
             # stacking images when we crop so we don't have two copies of all of the image channels saved as different variables
             #X_jet = crop_jet( np.concatenate([TracksPt, TracksD0, TracksDz, Ecal, Hcal, pix1, pix2, pix3], axis=-1), iphi, ieta, args.granularity )
             #X_jet = crop_jet( jet_stack, iphi, ieta, args.granularity )
-            
+
             #del jet_stack
             #jet_stack = None
 
