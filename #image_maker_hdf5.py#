@@ -1,0 +1,52 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import h5py
+from matplotlib.colors import LogNorm
+import numpy as np
+
+filename = 'test_output/multijet_test_x1.hdf5'
+#filename = '/multijet_test_x1.hdf5'
+
+f = h5py.File(filename, 'r')
+
+print(np.shape(f['X_jets']))
+#idx is which jets number in the hdf5 file you want to look at
+#idx = 13idx = 0
+#this is a way of slicing a numpy array (also works with hdf5 files
+# the ... means keep all of the axis the same in that range (so after the 0th one)
+img_crop = f['X_jets'][idx,...]
+
+# Image channels should be in this order:
+# 0 - pT
+# 1 - d0
+# 2 - dz
+# 3 - ecal
+# 4 - hcal
+# 5 - pix l1
+# 6 - pix l2
+# 7 - pix l3
+# The image channel is also determined by the index of the final axis
+
+
+# This is just plotting hcal, ecal and pT
+# When plotting, each new image will be plotted on top of the previous image
+# as such, hcal -> ecal -> tracks -> pixel hits, because the image channels grow more sparse in that order
+#
+# LogNorm() will plot the image with a log scale. This makes it easier to see low energy stuff, but also makes it
+# so the "white space" is not plotted. If this was not the case, you would not be able to see any hits from what is being draw over
+# However, keep in mind that if you do this for the d0 and dz layers, you will not be able to see any of the negative values 
+#
+# Also, the d0, dz, and pT channels overlay perfectly, as such I normally omit the d0 and dz channels when plotting everything all at once
+# However, it will still be good to look at those on their own to make sure they look right. When doing this, omit the norm=LogNorm() parameter
+
+
+plt.imshow(img_crop[...,4], vmin=1.e-3, cmap='Greys', norm=LogNorm(), alpha=0.9) # hcal
+plt.imshow(img_crop[...,3], vmin=1.e-3, cmap='Blues', norm=LogNorm(), alpha=0.9) # ecal
+plt.imshow(img_crop[...,2], vmin=1.e-3, cmap='Oranges', norm=LogNorm(), alpha=0.9) # pt
+#plt.imshow(img_crop[...,5], vmin=1e-3, cmap='Greens', norm=LogNorm(), alpha=0.9) #BPix L1
+#plt.imshow(img_crop[...,6], vmin=1e-3, cmap='Blues', norm=LogNorm(), alpha=0.9) #BPix L2
+#plt.imshow(img_crop[...,7], vmin=1e-3, cmap='Purples', norm=LogNorm(), alpha=0.9) #BPix L3
+
+plt.savefig('test_images/jet_%d.png' %idx)
+#plt.show()
