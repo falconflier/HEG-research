@@ -17,7 +17,7 @@ if label == 0:
 elif label == 1:
     if jets == 1:
 #        dirs = ['/home/npervan/e2e/jmar_aod_ntuples/']
-	dirs = ['/home/npervan/e2e/TTbar_AF']
+        dirs = ['/home/npervan/e2e/TTbar_AF']
     elif jets == 2:
         dirs = []
 else:
