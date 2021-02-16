@@ -21,12 +21,12 @@ elif label == 1:
     elif jets == 2:
         dirs = []
 else:
-    print 'did not put right inputs'
+    print("did not put right inputs")
     quit()
 
 def submit(start, end):
-    print 'Submitting new set of condor jobs'
-    os.system('python loopCondor.py -l %d -g %d -j %d --start %d --end %d' % (label, gran, jets, start, end))
+    print("Submitting new set of condor jobs")
+    os.system('python3 loopCondor.py -l %d -g %d -j %d --start %d --end %d' % (label, gran, jets, start, end))
 
 def check_progress():
     progress = subprocess.check_output(['condor_q'])
@@ -37,25 +37,25 @@ def main():
     if not check_progress():
          choice = raw_input('Warning, currently have condor jobs running. Do you wish to continue? (Y/N)\n')
          if choice.lower() == 'y':
-           print 'Will run script anyways'
+           print('Will run script anyways')
          else:
-            print 'Exiting script'
+            print('Exiting script')
             return 0
     nFiles = 0
     for directory in dirs:
         nFiles += len(glob.glob('%s/*' % directory))
     idxs = list(range(0,nFiles, 150))
-    print 'Parameters are:'
-    print 'Use x%d granularity' % gran
-    print 'Process on label', label
-    print 'Process jet number', jets
-    print 'will submit following number of jobs', nFiles
+    print('Parameters are:')
+    print('Use x%d granularity >> ' % gran)
+    print('Process on label >> ' + str(label))
+    print('Process jet number >> ' + str(jets))
+    print('will submit following number of jobs >> ' + str(nFiles))
 
     time.sleep(10)
 
     for idx in idxs:
         while not check_progress():
-            print 'Condor jobs still running'
+            print('Condor jobs still running')
             time.sleep(120)
         submit(idx, idx+150)
         time.sleep(10)

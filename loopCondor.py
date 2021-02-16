@@ -1,3 +1,5 @@
+# Added Feb 16, 2021 to check that this was the file being called
+#print("Hello there, you called me?")
 #!/usr/bin/env python
 import os, sys
 import glob
